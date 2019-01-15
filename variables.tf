@@ -77,7 +77,7 @@ variable "win_image_version" {
 }
 
 variable "base_runlist" {
-  default = "cb_dvo_resolveDNS, cb_dvo_chefClient, cb_dvo_selinux, cb_dvo_addStorage, cb_dvo_adJoin, cb_dvo_sshd, cb_dvo_authorization, cb_dvo_prtg, cb_tbc_dockerHost, cb_dvo_localAccounts, cb_dvo_logging, cb_dvo_dynatraceAgent"
+  default = "cb_dvo_chefclient, cb_dvo_adjoin, cb_dvo_sshd, cb_dvo_authorization, cb_dvo_prtg, cb_dvo_logging"
 }
 
 variable "vnet" {
@@ -107,7 +107,7 @@ variable "sql_subnet_id" {
 
 variable "sql_chef_runlist" {
   description = "An ordered runlist to be sent to the chef server on provision for the SQL node"
-  default     = "cb_dvo_chefClient, cb_dvo_addStorage, cb_dvo_adJoin, cb_dvo_prtg"
+  default     = "cb_dvo_chefclient, cb_dvo_adjoin, cb_dvo_prtg"
 }
 
 locals {
