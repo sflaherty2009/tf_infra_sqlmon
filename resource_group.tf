@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "rg" {
-  name     = "AZ-RG-${upper(lookup(var.penv,terraform.workspace))}"
+  name     = "AZ-RG-${upper(lookup(var.penv,terraform.workspace))}-sqlmon"
   location = "${var.location}"
 }
 

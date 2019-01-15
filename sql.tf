@@ -1,26 +1,27 @@
 resource "azurerm_public_ip" "sql" {
-  name                         = "azw-${lookup(var.penv,terraform.workspace)}-sqlmonmon-01-pubip"
+  name                         = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01-pubip"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   public_ip_address_allocation = "dynamic"
-  domain_name_label            = "azw-${lookup(var.penv,terraform.workspace)}-sqlmonmon-01-${lower(azurerm_resource_group.rg.name)}"
+  domain_name_label            = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01-${lower(azurerm_resource_group.rg.name)}"
 }
 
 resource "azurerm_network_interface" "sql" {
-  name                = "azw-${lookup(var.penv,terraform.workspace)}-sqlmonmon-01-nic"
+  name                = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-${format("%02d", count.index+1)}-nic"
   location            = "${azurerm_resource_group.rg.location}"
   resource_group_name = "${azurerm_resource_group.rg.name}"
+  count                        = "${lookup(var.count_sql_vms,terraform.workspace)}"
 
   ip_configuration {
-    name                          = "azw-${lookup(var.penv,terraform.workspace)}-sqlmon-01-ipconf"
+    name                          = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-${format("%02d", count.index+1)}-ipconf"
     subnet_id                     = "${lookup(var.sql_subnet_id,terraform.workspace)}"
     private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.sql.*.id, count.index)}"
+    public_ip_address_id          = "${azurerm_public_ip.sql.*.id[count.index]}"
   }
 }
 
 resource "azurerm_storage_account" "sql" {
-  name                     = "azw${lookup(var.penv,terraform.workspace)}sqlmon01s"
+  name                     = "azw${lookup(var.penv,terraform.workspace)}sqmn01s"
   resource_group_name      = "${azurerm_resource_group.rg.name}"
   location                 = "${azurerm_resource_group.rg.location}"
   account_tier             = "Standard"
@@ -35,7 +36,7 @@ resource "azurerm_storage_container" "sql" {
 }
 
 resource "azurerm_virtual_machine" "sql" {
-  name                  = "azw-${lookup(var.penv,terraform.workspace)}-sqlmon-01"
+  name                  = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01"
   location              = "${azurerm_resource_group.rg.location}"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
   network_interface_ids = ["${azurerm_network_interface.sql.id}"]
@@ -46,7 +47,7 @@ resource "azurerm_virtual_machine" "sql" {
 
   provisioner "local-exec" {
     when    = "destroy"
-    command = "knife node delete azw-${lookup(var.penv,terraform.workspace)}-sqlmon-01-${azurerm_resource_group.rg.name} -y; knife client delete azw-${lookup(var.penv,terraform.workspace)}-sqlmon-01-${azurerm_resource_group.rg.name} -y"
+    command = "knife node delete azw-${lookup(var.penv,terraform.workspace)}-sqmn-01-${azurerm_resource_group.rg.name} -y; knife client delete azw-${lookup(var.penv,terraform.workspace)}-sqmn-01-${azurerm_resource_group.rg.name} -y"
   }
 
   storage_image_reference {
@@ -72,7 +73,7 @@ resource "azurerm_virtual_machine" "sql" {
   }
 
   os_profile {
-    computer_name  = "azw-${lookup(var.penv,terraform.workspace)}-sqlmon-01"
+    computer_name  = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01"
     admin_username = "${local.admin_user}"
     admin_password = "${local.admin_password}"
   }
