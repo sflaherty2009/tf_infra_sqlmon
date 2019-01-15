@@ -34,21 +34,6 @@ resource "azurerm_storage_container" "sql" {
   container_access_type = "private"
 }
 
-resource "azurerm_storage_account" "sqlp" {
-  name                     = "azw${lookup(var.penv,terraform.workspace)}sqlmon01p"
-  resource_group_name      = "${azurerm_resource_group.rg.name}"
-  location                 = "${azurerm_resource_group.rg.location}"
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
-resource "azurerm_storage_container" "sqlp" {
-  name                  = "vhds"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  storage_account_name  = "${azurerm_storage_account.sqlp.name}"
-  container_access_type = "private"
-}
-
 resource "azurerm_virtual_machine" "sql" {
   name                  = "azw-${lookup(var.penv,terraform.workspace)}-sqlmon-01"
   location              = "${azurerm_resource_group.rg.location}"
@@ -80,8 +65,8 @@ resource "azurerm_virtual_machine" "sql" {
 
   storage_data_disk {
     name          = "datadisk-0"
-    vhd_uri       = "${azurerm_storage_account.sqlp.primary_blob_endpoint}${azurerm_storage_container.sqlp.name}/datadisk-0.vhd"
-    disk_size_gb  = "1024"
+    vhd_uri       = "${azurerm_storage_account.sql.primary_blob_endpoint}${azurerm_storage_container.sql.name}/datadisk-0.vhd"
+    disk_size_gb  = "979"
     create_option = "Empty"
     lun           = 0
   }
@@ -101,31 +86,84 @@ resource "azurerm_virtual_machine" "sql" {
   }
 }
 
+resource "azurerm_virtual_machine_extension" "sql_disk_setup" {
+  name                 = "disksetup"
+  location             = "${azurerm_resource_group.rg.location}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_machine_name = "${azurerm_virtual_machine.sql.name}"
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.9"
+
+  settings = <<SETTINGS
+    {
+      "fileUris": ["https://aztrksa0qyat0bootscripts.blob.core.windows.net/custom-script-extension-scripts/Windows/disk_setup_windows.ps1"],
+      "commandToExecute": "powershell.exe -executionpolicy Unrestricted -File \"./Windows/disk_setup_windows.ps1\""
+    }
+SETTINGS
+
+  protected_settings = <<SETTINGS
+    {
+      "storageAccountName": "aztrksa0qyat0bootscripts",
+      "storageAccountKey": "${local.script_storage_key}"
+    }
+SETTINGS
+
+  tags {
+    environment = "Terraform"
+  }
+}
+
+resource "azurerm_virtual_machine_extension" "adjoin" {
+  name                 = "adjoin"
+  location             = "${azurerm_resource_group.rg.location}"
+  resource_group_name  = "${azurerm_resource_group.rg.name}"
+  virtual_machine_name = "${azurerm_virtual_machine.sql.name}"
+  publisher            = "Microsoft.Compute"
+  type                 = "JsonADDomainExtension"
+  type_handler_version = "1.3"
+  depends_on           = ["azurerm_virtual_machine_extension.sql_disk_setup"]
+
+  # NOTE: the `OUPath` field is intentionally blank, to put it in the Computers OU
+  settings = <<SETTINGS
+    {
+        "Name": "trek.web",
+        "OUPath": "",
+        "User": "trek.web\\${local.ad_user}",
+        "Restart": "true",
+        "Options": "3"
+    }
+SETTINGS
+
+  protected_settings = <<SETTINGS
+    {
+        "Password": "${local.ad_password}"
+    }
+SETTINGS
+}
+
 resource "azurerm_virtual_machine_extension" "sql" {
   name                       = "ChefClient"
   location                   = "${azurerm_resource_group.rg.location}"
   resource_group_name        = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name       = "${azurerm_virtual_machine.sql.name}"
+  virtual_machine_name       = "${azurerm_virtual_machine.sql.*.name[count.index]}"
   publisher                  = "Chef.Bootstrap.WindowsAzure"
   type                       = "ChefClient"
   type_handler_version       = "1210.12"
   auto_upgrade_minor_version = true
+  count                      = "${lookup(var.count_sql_vms,terraform.workspace)}"
+  depends_on                 = ["azurerm_virtual_machine_extension.adjoin"]
 
   settings = <<SETTINGS
   {
     "client_rb": "ssl_verify_mode :verify_none",
     "bootstrap_version": "${var.chef_client_version}",
     "bootstrap_options": {
-      "chef_node_name": "${azurerm_virtual_machine.sql.name}-${azurerm_resource_group.rg.name}",
+      "chef_node_name": "${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name}",
       "chef_server_url": "${var.chef_server_url}",
       "environment": "${lookup(var.chef_environment,terraform.workspace)}",
       "validation_client_name": "${var.chef_user_name}"
     },
-    "custom_json_attr": {
-      "dvo_user": {
-        "ALM_environment": "${lookup(var.environment_name,terraform.workspace)}"
-      }
-     },
      "runlist": "${var.sql_chef_runlist}"
   }
   SETTINGS

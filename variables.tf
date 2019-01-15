@@ -95,6 +95,17 @@ variable "sql_vm_size" {
   default     = "Standard_D2_v2"
 }
 
+variable "count_sql_vms" {
+  description = "Number of desired sql vms"
+
+  default = {
+    default = 1
+    prod    = 1
+    test    = 1
+    devops  = 1
+  }
+}
+
 variable "sql_subnet_id" {
   description = "Full path of the subnet desired for the SQL node"
 
@@ -112,6 +123,10 @@ variable "sql_chef_runlist" {
 
 locals {
   admin_credentials = "${split("\n",file("${path.module}/secrets/admin_credentials"))}"
-  admin_user = "${local.admin_credentials[0]}"
-  admin_password = "${local.admin_credentials[1]}"
+  admin_user        = "${local.admin_credentials[0]}"
+  admin_password    = "${local.admin_credentials[1]}"
+  ad_credentials    = "${split("\n",file("${path.module}/secrets/ad_credentials"))}"
+  ad_user           = "${local.ad_credentials[0]}"
+  ad_password       = "${local.ad_credentials[1]}"
+  script_storage_key = "${trimspace(file("${path.module}/secrets/script_storage_key"))}"
 }
