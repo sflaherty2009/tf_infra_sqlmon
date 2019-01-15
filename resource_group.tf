@@ -3,7 +3,7 @@ resource "azurerm_resource_group" "rg" {
   location = "${var.location}"
 }
 
-resource "azurerm_management_lock" "prod_lock" {
+resource "azurerm_management_lock" "prod_sqlmon_lock" {
   name       = "DoNotDelete"
   scope      = "${azurerm_resource_group.rg.id}"
   lock_level = "CanNotDelete"
