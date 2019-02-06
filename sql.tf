@@ -50,8 +50,8 @@ resource "azurerm_virtual_machine" "sql" {
   }
 
   storage_os_disk {
-    name          = "osdisk"
-    vhd_uri       = "${azurerm_storage_account.sql.primary_blob_endpoint}${azurerm_storage_container.sql.name}/osdisk.vhd"
+    name          = "azw-${lookup(var.penv,terraform.workspace)}-sqlmn-${format("%02d", count.index+1)}-osdisk"
+    managed_disk_type = "Standard_LRS"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
