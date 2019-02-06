@@ -162,7 +162,7 @@ resource "null_resource" "sql_mon_bootstrap" {
         --bootstrap-version ${var.chef_client_version} \
         --environment ${lookup(var.chef_environment,terraform.workspace)} \
         -x ${local.admin_user} -P ${local.admin_password} \
-        --run-list '${var.sql_chef_runlist}' \
+        --run-list '${var.base_runlist}' \
         --bootstrap-vault-item 'infrastructure-vaults:credentials' \
         --bootstrap-vault-item 'infrastructure-vaults:sumologic' \
         --node-ssl-verify-mode none --yes && \
