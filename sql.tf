@@ -141,41 +141,7 @@ SETTINGS
         "Password": "${local.ad_password}"
     }
 SETTINGS
-}
-
-# resource "azurerm_virtual_machine_extension" "sql" {
-#   name                       = "ChefClient"
-#   location                   = "${azurerm_resource_group.rg.location}"
-#   resource_group_name        = "${azurerm_resource_group.rg.name}"
-#   virtual_machine_name       = "${azurerm_virtual_machine.sql.*.name[count.index]}"
-#   publisher                  = "Chef.Bootstrap.WindowsAzure"
-#   type                       = "ChefClient"
-#   type_handler_version       = "1210.12"
-#   auto_upgrade_minor_version = true
-#   count                      = "${lookup(var.count_sql_vms,terraform.workspace)}"
-#   depends_on                 = ["azurerm_virtual_machine_extension.adjoin"]
-
-#   settings = <<SETTINGS
-#   {
-#     "client_rb": "ssl_verify_mode :verify_none",
-#     "bootstrap_version": "${var.chef_client_version}",
-#     "bootstrap_options": {
-#       "chef_node_name": "${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name}",
-#       "chef_server_url": "${var.chef_server_url}",
-#       "environment": "${lookup(var.chef_environment,terraform.workspace)}",
-#       "validation_client_name": "${var.chef_user_name}"
-#     },
-#      "runlist": "${var.sql_chef_runlist}"
-#   }
-#   SETTINGS
-
-#   protected_settings = <<SETTINGS
-#   {
-#     "validation_key": "${file("${path.module}/secrets/validation.pem")}",
-#     "secret": "${file("${path.module}/secrets/database_secret")}"
-#   }
-#   SETTINGS
-# }
+}ß
 
 resource "null_resource" "sql_mon_bootstrap" {
   count      = "${lookup(var.count_sql_vms,terraform.workspace)}"
