@@ -165,8 +165,6 @@ resource "null_resource" "sql_mon_bootstrap" {
         --run-list '${var.sql_chef_runlist}' \
         --bootstrap-vault-item 'infrastructure-vaults:credentials' \
         --bootstrap-vault-item 'infrastructure-vaults:sumologic' \
-        --bootstrap-vault-item 'infrastructure-vaults:prtg' \
-        --secret "${file("${path.module}/secrets/database_secret")}" \
         --node-ssl-verify-mode none --yes && \
       knife tag create ${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name} hybris_sql_mon
     BOOTSTRAP
