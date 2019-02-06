@@ -151,7 +151,7 @@ resource "null_resource" "sql_mon_bootstrap" {
         --bootstrap-vault-item 'infrastructure-vaults:credentials' \
         --bootstrap-vault-item 'infrastructure-vaults:sumologic' \
         --node-ssl-verify-mode none --yes && \
-      knife tag create ${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name} hybris_sql_mon
+      knife tag create ${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name} sql_mon
     BOOTSTRAP
   }
 }
