@@ -53,7 +53,7 @@ variable "chef_user_name" {
 
 variable "chef_client_version" {
   description = "Version of Chef-Client to utilized during provision time"
-  default     = "14.9.10"
+  default     = "14"
 }
 
 variable "win_image_publisher" {
