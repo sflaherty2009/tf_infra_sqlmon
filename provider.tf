@@ -3,7 +3,7 @@ terraform {
     storage_account_name = "terraformlock"
     container_name       = "environments"
     resource_group_name  = "dvo_terraform"
-    key                  = "sql_mon_prod/terraform.tfstate"
+    key                  = "sql_mon/terraform.tfstate"
   }
 }
 

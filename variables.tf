@@ -53,7 +53,7 @@ variable "chef_user_name" {
 
 variable "chef_client_version" {
   description = "Version of Chef-Client to utilized during provision time"
-  default     = "13.8.5"
+  default     = "14"
 }
 
 variable "win_image_publisher" {
@@ -77,7 +77,7 @@ variable "win_image_version" {
 }
 
 variable "base_runlist" {
-  default = "cb_dvo_chefclient, cb_dvo_adjoin, cb_dvo_sshd, cb_dvo_authorization, cb_dvo_prtg, cb_dvo_logging"
+  default = "cb_dvo_chefclient, cb_dvo_authorization, cb_dvo_snmp, cb_dvo_logging"
 }
 
 variable "vnet" {

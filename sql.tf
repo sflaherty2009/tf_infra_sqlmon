@@ -20,21 +20,6 @@ resource "azurerm_network_interface" "sql" {
   }
 }
 
-resource "azurerm_storage_account" "sql" {
-  name                     = "azw${lookup(var.penv,terraform.workspace)}sqmn01s"
-  resource_group_name      = "${azurerm_resource_group.rg.name}"
-  location                 = "${azurerm_resource_group.rg.location}"
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
-resource "azurerm_storage_container" "sql" {
-  name                  = "vhds"
-  resource_group_name   = "${azurerm_resource_group.rg.name}"
-  storage_account_name  = "${azurerm_storage_account.sql.name}"
-  container_access_type = "private"
-}
-
 resource "azurerm_virtual_machine" "sql" {
   name                  = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01"
   location              = "${azurerm_resource_group.rg.location}"
@@ -58,15 +43,15 @@ resource "azurerm_virtual_machine" "sql" {
   }
 
   storage_os_disk {
-    name          = "osdisk"
-    vhd_uri       = "${azurerm_storage_account.sql.primary_blob_endpoint}${azurerm_storage_container.sql.name}/osdisk.vhd"
+    name          = "azw-${lookup(var.penv,terraform.workspace)}-sqlmn-${format("%02d", count.index+1)}-osdisk"
+    managed_disk_type = "Standard_LRS"
     caching       = "ReadWrite"
     create_option = "FromImage"
   }
 
-  storage_data_disk {
-    name          = "datadisk-0"
-    vhd_uri       = "${azurerm_storage_account.sql.primary_blob_endpoint}${azurerm_storage_container.sql.name}/datadisk-0.vhd"
+storage_data_disk {
+    name          = "azw-${lookup(var.penv,terraform.workspace)}-sqlmn-${format("%02d", count.index+1)}-datadisk-0"
+    managed_disk_type = "Standard_LRS"
     disk_size_gb  = "979"
     create_option = "Empty"
     lun           = 0
@@ -143,36 +128,30 @@ SETTINGS
 SETTINGS
 }
 
-resource "azurerm_virtual_machine_extension" "sql" {
-  name                       = "ChefClient"
-  location                   = "${azurerm_resource_group.rg.location}"
-  resource_group_name        = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name       = "${azurerm_virtual_machine.sql.*.name[count.index]}"
-  publisher                  = "Chef.Bootstrap.WindowsAzure"
-  type                       = "ChefClient"
-  type_handler_version       = "1210.12"
-  auto_upgrade_minor_version = true
-  count                      = "${lookup(var.count_sql_vms,terraform.workspace)}"
-  depends_on                 = ["azurerm_virtual_machine_extension.adjoin"]
+resource "null_resource" "sql_mon_bootstrap" {
+  count      = "${lookup(var.count_sql_vms,terraform.workspace)}"
+  depends_on = [
+    "azurerm_virtual_machine_extension.adjoin",
+  ]
 
-  settings = <<SETTINGS
-  {
-    "client_rb": "ssl_verify_mode :verify_none",
-    "bootstrap_version": "${var.chef_client_version}",
-    "bootstrap_options": {
-      "chef_node_name": "${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name}",
-      "chef_server_url": "${var.chef_server_url}",
-      "environment": "${lookup(var.chef_environment,terraform.workspace)}",
-      "validation_client_name": "${var.chef_user_name}"
-    },
-     "runlist": "${var.sql_chef_runlist}"
+  triggers{
+    sql_mon_bootstrap_instance = "${azurerm_virtual_machine.sql.*.id[count.index]}"
   }
-  SETTINGS
 
-  protected_settings = <<SETTINGS
-  {
-    "validation_key": "${file("${path.module}/secrets/validation.pem")}",
-    "secret": "${file("${path.module}/secrets/database_secret")}"
+  provisioner "local-exec" {
+    command = <<BOOTSTRAP
+      sleep $((10 * ${count.index})) && \
+      ssh-keygen -R ${azurerm_network_interface.sql.*.private_ip_address[count.index]} && \
+      knife bootstrap windows winrm ${azurerm_network_interface.sql.*.private_ip_address[count.index]} \
+        -N ${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name} \
+        --bootstrap-version ${var.chef_client_version} \
+        --environment ${lookup(var.chef_environment,terraform.workspace)} \
+        -x ${local.admin_user} -P ${local.admin_password} \
+        --run-list '${var.base_runlist}' \
+        --bootstrap-vault-item 'infrastructure-vaults:credentials' \
+        --bootstrap-vault-item 'infrastructure-vaults:sumologic' \
+        --node-ssl-verify-mode none --yes && \
+      knife tag create ${azurerm_virtual_machine.sql.*.name[count.index]}-${azurerm_resource_group.rg.name} hybris_sql_mon
+    BOOTSTRAP
   }
-  SETTINGS
 }
