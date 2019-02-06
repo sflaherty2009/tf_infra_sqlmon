@@ -57,7 +57,7 @@ resource "azurerm_virtual_machine" "sql" {
   }
 
 storage_data_disk {
-    name          = "datadisk-0"
+    name          = "azw-${lookup(var.penv,terraform.workspace)}-sqlmn-${format("%02d", count.index+1)}-datadisk-0"
     managed_disk_type = "Standard_LRS"
     disk_size_gb  = "979"
     create_option = "Empty"
