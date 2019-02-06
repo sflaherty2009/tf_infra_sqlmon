@@ -141,7 +141,7 @@ SETTINGS
         "Password": "${local.ad_password}"
     }
 SETTINGS
-}ß
+}
 
 resource "null_resource" "sql_mon_bootstrap" {
   count      = "${lookup(var.count_sql_vms,terraform.workspace)}"
