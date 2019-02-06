@@ -20,14 +20,6 @@ resource "azurerm_network_interface" "sql" {
   }
 }
 
-resource "azurerm_storage_account" "sql" {
-  name                     = "azw${lookup(var.penv,terraform.workspace)}sqmn01s"
-  resource_group_name      = "${azurerm_resource_group.rg.name}"
-  location                 = "${azurerm_resource_group.rg.location}"
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-}
-
 resource "azurerm_storage_container" "sql" {
   name                  = "vhds"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
@@ -64,9 +56,9 @@ resource "azurerm_virtual_machine" "sql" {
     create_option = "FromImage"
   }
 
-  storage_data_disk {
+storage_data_disk {
     name          = "datadisk-0"
-    vhd_uri       = "${azurerm_storage_account.sql.primary_blob_endpoint}${azurerm_storage_container.sql.name}/datadisk-0.vhd"
+    managed_disk_type = "Standard_LRS"
     disk_size_gb  = "979"
     create_option = "Empty"
     lun           = 0
