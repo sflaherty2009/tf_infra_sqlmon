@@ -33,7 +33,7 @@ variable "penv" {
 
 variable "chef_server_url" {
   description = "Enter full chef url using private ip"
-  default     = "https://10.16.192.4/organizations/trek"
+  default     = "https://10.16.192.4/organizations/org"
 }
 
 variable "chef_environment" {
@@ -48,7 +48,7 @@ variable "chef_environment" {
 
 variable "chef_user_name" {
   description = "Enter username to be utilized with validation key"
-  default     = "trek-validator"
+  default     = "validator"
 }
 
 variable "chef_client_version" {

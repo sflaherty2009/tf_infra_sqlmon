@@ -2,7 +2,7 @@ resource "azurerm_public_ip" "sql" {
   name                         = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01-pubip"
   location                     = "${azurerm_resource_group.rg.location}"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
-  public_ip_address_allocation = "dynamic"
+  allocation_method            = "dynamic"
   domain_name_label            = "azw-${lookup(var.penv,terraform.workspace)}-sqmn-01-${lower(azurerm_resource_group.rg.name)}"
 }
 
@@ -67,16 +67,14 @@ storage_data_disk {
     provision_vm_agent = "true"
   }
 
-  tags {
+  tags = {
     environment = "${lookup(var.environment_name,terraform.workspace)}"
   }
 }
 
 resource "azurerm_virtual_machine_extension" "sql_disk_setup" {
   name                 = "disksetup"
-  location             = "${azurerm_resource_group.rg.location}"
-  resource_group_name  = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name = "${azurerm_virtual_machine.sql.name}"
+  virtual_machine_id = "${azurerm_virtual_machine.sql.id}"
   publisher            = "Microsoft.Compute"
   type                 = "CustomScriptExtension"
   type_handler_version = "1.9"
@@ -95,16 +93,14 @@ SETTINGS
     }
 SETTINGS
 
-  tags {
+  tags = {
     environment = "Terraform"
   }
 }
 
 resource "azurerm_virtual_machine_extension" "adjoin" {
   name                 = "adjoin"
-  location             = "${azurerm_resource_group.rg.location}"
-  resource_group_name  = "${azurerm_resource_group.rg.name}"
-  virtual_machine_name = "${azurerm_virtual_machine.sql.name}"
+  virtual_machine_id = "${azurerm_virtual_machine.sql.id}"
   publisher            = "Microsoft.Compute"
   type                 = "JsonADDomainExtension"
   type_handler_version = "1.3"
@@ -113,9 +109,9 @@ resource "azurerm_virtual_machine_extension" "adjoin" {
   # NOTE: the `OUPath` field is intentionally blank, to put it in the Computers OU
   settings = <<SETTINGS
     {
-        "Name": "trek.web",
+        "Name": "example.web",
         "OUPath": "",
-        "User": "trek.web\\${local.ad_user}",
+        "User": "example.web\\${local.ad_user}",
         "Restart": "true",
         "Options": "3"
     }
@@ -134,7 +130,7 @@ resource "null_resource" "sql_mon_bootstrap" {
     "azurerm_virtual_machine_extension.adjoin",
   ]
 
-  triggers{
+  triggers = {
     sql_mon_bootstrap_instance = "${azurerm_virtual_machine.sql.*.id[count.index]}"
   }
 

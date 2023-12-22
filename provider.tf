@@ -5,8 +5,9 @@ terraform {
     resource_group_name  = "dvo_terraform"
     key                  = "sql_mon/terraform.tfstate"
   }
-}
-
-provider "azurerm" {
-  subscription_id = "${lookup(var.subscription_id,terraform.workspace)}"
+  required_providers {
+      azurerm = {
+        subscription_id = "${lookup(var.subscription_id,terraform.workspace)}"
+      }
+  }
 }
